@@ -7,32 +7,38 @@ The SDK provides **optional logging** support through a simple interface pattern
 ### No Logging (Default)
 
 ```typescript
-import { HttpClient, OrderClient } from '@limitless-exchange/sdk';
+import { HttpClient } from '@limitless-exchange/sdk';
 
-// No logging - zero overhead
+// No logger - nothing is printed
 const httpClient = new HttpClient({
   baseURL: 'https://api.limitless.exchange',
-  apiKey: process.env.LIMITLESS_API_KEY,
+  hmacCredentials: {
+    tokenId: process.env.LMTS_TOKEN_ID!,
+    secret: process.env.LMTS_TOKEN_SECRET!,
+  },
 });
 ```
 
 ### Development Logging
 
 ```typescript
-import { HttpClient, OrderClient, ConsoleLogger } from '@limitless-exchange/sdk';
+import { HttpClient, ConsoleLogger } from '@limitless-exchange/sdk';
 
 // Simple console logging for development
 const logger = new ConsoleLogger('debug'); // or 'info', 'warn', 'error'
 
 const httpClient = new HttpClient({
   baseURL: 'https://api.limitless.exchange',
-  apiKey: process.env.LIMITLESS_API_KEY,
+  hmacCredentials: {
+    tokenId: process.env.LMTS_TOKEN_ID!,
+    secret: process.env.LMTS_TOKEN_SECRET!,
+  },
   logger,
 });
 
 // Now SDK operations will log to console:
-// [Limitless SDK] → GET https://api.limitless.exchange/markets
-// [Limitless SDK] ✓ 200 GET /markets
+// [Limitless SDK] → GET https://api.limitless.exchange/markets/active
+// [Limitless SDK] ✓ 200 GET /markets/active
 ```
 
 ## Logger Levels
@@ -56,7 +62,7 @@ const logger = new ConsoleLogger('error');
 For production, implement your own logger using the `ILogger` interface:
 
 ```typescript
-import { ILogger } from '@limitless-exchange/sdk';
+import { ILogger, HttpClient } from '@limitless-exchange/sdk';
 
 class CustomLogger implements ILogger {
   debug(message: string, meta?: Record<string, any>): void {
@@ -84,7 +90,10 @@ class CustomLogger implements ILogger {
 const logger = new CustomLogger();
 const httpClient = new HttpClient({
   baseURL: 'https://api.limitless.exchange',
-  apiKey: process.env.LIMITLESS_API_KEY,
+  hmacCredentials: {
+    tokenId: process.env.LMTS_TOKEN_ID!,
+    secret: process.env.LMTS_TOKEN_SECRET!,
+  },
   logger,
 });
 ```
@@ -117,21 +126,24 @@ export interface ILogger {
 
 ## What Gets Logged
 
-### Info Level
-- API requests (method + URL)
-- Successful responses (status code)
-- Order creation/cancellation
-- Position updates
-
 ### Debug Level
+- API requests (method + URL)
 - Request headers (API key redacted)
 - Request body data
-- Response data
-- WebSocket events
+- Responses (status code and response data)
+- Error responses (status code and response data)
+
+### Info Level
+- Results of `MarketFetcher` and `PortfolioFetcher` calls (e.g. `Market fetched successfully`)
+- `OrderClient` initialization, order creation/cancellation
+- WebSocket connect, disconnect and subscriptions
+
+### Warn Level
+- `HttpClient` created without credentials
+- `createOrder()` called before the market was fetched with the same `MarketFetcher` (`Venue not cached`)
 
 ### Error Level
-- API errors (with status code and response data)
-- Network errors
+- `MarketFetcher` and `PortfolioFetcher` errors (error message, including network errors)
 - WebSocket connection errors
 
 ## Security Considerations
@@ -175,7 +187,10 @@ function createLogger(): ILogger | undefined {
 const logger = createLogger();
 const httpClient = new HttpClient({
   baseURL: 'https://api.limitless.exchange',
-  apiKey: process.env.LIMITLESS_API_KEY,
+  hmacCredentials: {
+    tokenId: process.env.LMTS_TOKEN_ID!,
+    secret: process.env.LMTS_TOKEN_SECRET!,
+  },
   logger,
 });
 ```
@@ -197,7 +212,10 @@ const logger = new ConsoleLogger('info');
 // Initialize HTTP client with logger
 const httpClient = new HttpClient({
   baseURL: 'https://api.limitless.exchange',
-  apiKey: process.env.LIMITLESS_API_KEY,
+  hmacCredentials: {
+    tokenId: process.env.LMTS_TOKEN_ID!,
+    secret: process.env.LMTS_TOKEN_SECRET!,
+  },
   logger,
 });
 
