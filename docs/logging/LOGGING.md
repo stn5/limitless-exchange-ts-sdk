@@ -169,7 +169,7 @@ The SDK automatically sanitizes sensitive data:
 ## Example: Environment-Based Logging
 
 ```typescript
-import { ILogger, ConsoleLogger } from '@limitless-exchange/sdk';
+import { ILogger, ConsoleLogger, HttpClient } from '@limitless-exchange/sdk';
 
 function createLogger(): ILogger | undefined {
   if (process.env.NODE_ENV === 'production') {
@@ -203,6 +203,8 @@ import {
   OrderClient,
   MarketFetcher,
   ConsoleLogger,
+  Side,
+  OrderType,
 } from '@limitless-exchange/sdk';
 import { ethers } from 'ethers';
 
@@ -219,25 +221,28 @@ const httpClient = new HttpClient({
   logger,
 });
 
-// All SDK components will use this logger
+// Pass the logger to each SDK component
 const marketFetcher = new MarketFetcher(httpClient, logger);
 const orderClient = new OrderClient({
   httpClient,
   wallet: new ethers.Wallet(process.env.PRIVATE_KEY!),
+  marketFetcher,
   logger,
 });
 
 // Logs will show all operations
 const markets = await marketFetcher.getActiveMarkets({ limit: 10 });
-// [Limitless SDK] → GET https://api.limitless.exchange/markets?limit=10
-// [Limitless SDK] ✓ 200 GET /markets?limit=10
+// [Limitless SDK] Active markets fetched successfully { count: 10, total: ..., sortBy: undefined, page: undefined }
 
-const order = await orderClient.createGTCOrder({
-  marketId: 'market-123',
-  side: 'BUY',
+const market = await marketFetcher.getMarket('market-slug');
+const order = await orderClient.createOrder({
+  tokenId: market.tokens!.yes,
   price: 0.5,
-  amount: 10,
+  size: 10,
+  side: Side.BUY,
+  orderType: OrderType.GTC,
+  marketSlug: market.slug,
 });
-// [Limitless SDK] → POST https://api.limitless.exchange/orders
-// [Limitless SDK] ✓ 201 POST /orders
+// [Limitless SDK] Creating order { side: 0, orderType: 'GTC', marketSlug: 'market-slug' }
+// [Limitless SDK] Order created successfully { orderId: '...' }
 ```
